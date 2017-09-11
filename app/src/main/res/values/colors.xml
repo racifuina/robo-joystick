@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#62AEB2</color>
+    <color name="colorPrimaryDark">#00878F</color>
+    <color name="colorAccent">#E47128</color>
+    <color name="lightBackground">#b0d6d8</color>
+    <color name="title_color">#222222</color>
+    <color name="sub_color">#999999</color>
+    <color name="white_color">#FFFFFF</color>
+    <color name="arduino_brown">#8C7965</color>
+    <color name="arduino_yellow">#E5AD24</color>
+    <color name="arduino_orange">#E47128</color>
+</resources>
