@@ -33,7 +33,8 @@ public class JoysticksActivity extends AppCompatActivity {
     private TextView mTextViewAngleRight;
     private TextView mTextViewStrengthRight;
     private List blockedKeys = new ArrayList(Arrays.asList(KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.KEYCODE_VOLUME_UP));
-    private JoystickPositions leftJoystickPosition, rightJoystickPosition;
+    private JoystickPositions leftJoystickPosition = JoystickPositions.center;
+    private JoystickPositions rightJoystickPosition = JoystickPositions.center;
     private Menu menu;
 
     @Override
@@ -86,14 +87,12 @@ public class JoysticksActivity extends AppCompatActivity {
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
         this.registerReceiver(mReceiver, filter);
 
-
         JoystickView joystickLeft = (JoystickView) findViewById(R.id.joystickView_left);
         joystickLeft.setOnMoveListener(new JoystickView.OnMoveListener() {
             @Override
             public void onMove(int angle, int strength) {
                 mTextViewAngleLeft.setText(angle + "°");
                 mTextViewStrengthLeft.setText(strength + "%");
-
                 if (strength > 10) {
                     if (angle < 180) {
                         leftJoystickPosition = JoystickPositions.forward;
@@ -103,6 +102,7 @@ public class JoysticksActivity extends AppCompatActivity {
                 } else {
                     leftJoystickPosition = JoystickPositions.center;
                 }
+                updateMovement();
             }
         }, 500);
 
@@ -124,9 +124,9 @@ public class JoysticksActivity extends AppCompatActivity {
                 } else {
                     rightJoystickPosition = JoystickPositions.center;
                 }
+                updateMovement();
             }
         });
-
     }
 
     @Override
@@ -144,6 +144,7 @@ public class JoysticksActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         unregisterReceiver(mReceiver);
+        BLEConnectionManager.getInstance().disconnectModule();
         super.onBackPressed();
     }
 
@@ -159,6 +160,30 @@ public class JoysticksActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+    private void updateMovement() {
+
+        //ADELANTE
+        if (leftJoystickPosition == JoystickPositions.forward && rightJoystickPosition == JoystickPositions.forward) {
+            BLEConnectionManager.getInstance().enviarComando("a");
+        }
+        //ATRAS
+        if (leftJoystickPosition == JoystickPositions.backwards && rightJoystickPosition == JoystickPositions.backwards) {
+            BLEConnectionManager.getInstance().enviarComando("e");
+        }
+        //CENTRO
+        if (leftJoystickPosition == JoystickPositions.center && rightJoystickPosition == JoystickPositions.center) {
+            BLEConnectionManager.getInstance().enviarComando("c");
+        }
+        //DERECHA
+        if (leftJoystickPosition == JoystickPositions.forward && rightJoystickPosition == JoystickPositions.backwards) {
+            BLEConnectionManager.getInstance().enviarComando("d");
+        }
+        //IZQUIERDA
+        if (leftJoystickPosition == JoystickPositions.backwards && rightJoystickPosition == JoystickPositions.forward) {
+            BLEConnectionManager.getInstance().enviarComando("b");
+        }
+
     }
 
     private  enum JoystickPositions {

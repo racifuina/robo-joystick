@@ -48,19 +48,15 @@ public class BLEConnectionManager extends BluetoothGattCallback {
             mBluetoothDevice = device;
             isConnected = true;
             bluetoothSocket = socketConnection;
+            System.out.println("is eRfcommS");
             if (bleManagerCallback != null) bleManagerCallback.onBLEDeviceConnected();
         } catch (IOException e) {
             isConnected = false;
-            if (bleManagerCallback != null)  bleManagerCallback.onBLEDeviceDisconnected();
+            disconnectModule();
+            System.out.println("is BLE");
+            device.connectGatt(RoboJoystick.getInstance(), true, this);
             e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-            isConnected = false;
-            if (bleManagerCallback != null)  bleManagerCallback.onBLEDeviceDisconnected();
         }
-
-//        disconnectModule();
-//        device.connectGatt(RoboJoystick.getInstance(), true, this);
     }
 
     interface BleManagerCallback {
@@ -103,6 +99,13 @@ public class BLEConnectionManager extends BluetoothGattCallback {
     }
 
     void disconnectModule() {
+        if (isConnected && bluetoothSocket != null) {
+            try {
+                bluetoothSocket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         if (mBluetoothGatt != null) {
             mBluetoothGatt.setCharacteristicNotification(mBluetoothGattCharacteristic, false);
             mBluetoothGatt.close();
@@ -110,16 +113,6 @@ public class BLEConnectionManager extends BluetoothGattCallback {
             mBluetoothDevice = null;
             mBluetoothGatt = null;
             mBluetoothGattCharacteristic = null;
-        }
-    }
-    void disconnect() {
-        if (isConnected && bluetoothSocket != null) {
-            try {
-                bluetoothSocket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
         }
     }
 
@@ -138,7 +131,6 @@ public class BLEConnectionManager extends BluetoothGattCallback {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
     }
 
