@@ -12,63 +12,11 @@
     tools:showIn="@layout/activity_find_devices">
 
 
-    <TextView
-        android:id="@+id/textView_angle_left"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="0°"/>
-
-
-    <TextView
-        android:id="@+id/textView_strength_left"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/textView_angle_left"
-        android:text="0%"/>
-
-
-    <io.github.controlwear.virtual.joystick.android.JoystickView
-        xmlns:custom="http://schemas.android.com/apk/res-auto"
-        android:id="@+id/joystickView_left"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_margin="32dp"
-        custom:JV_borderWidth="8dp"
-        custom:JV_backgroundColor="@color/colorPrimary"
-        custom:JV_borderColor="@color/colorPrimaryDark"
-        custom:JV_buttonColor="@color/arduino_orange"
-        custom:JV_fixedCenter="true"/>
-
-
-    <TextView
-        android:id="@+id/textView_angle_right"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:text="0°"/>
-
-
-    <TextView
-        android:id="@+id/textView_strength_right"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
-        android:layout_below="@+id/textView_angle_right"
-        android:text="0%"/>
-
-
-    <io.github.controlwear.virtual.joystick.android.JoystickView
-        xmlns:custom="http://schemas.android.com/apk/res-auto"
-        android:id="@+id/joystickView_right"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
-        android:layout_margin="32dp"
-        custom:JV_borderWidth="8dp"
-        custom:JV_backgroundColor="@color/colorPrimary"
-        custom:JV_borderColor="@color/colorPrimaryDark"
-        custom:JV_buttonColor="@color/arduino_orange"/>
+    <ListView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:id="@+id/listView"/>
 
 </RelativeLayout>

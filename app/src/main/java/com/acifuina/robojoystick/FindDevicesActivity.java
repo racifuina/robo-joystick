@@ -1,47 +1,41 @@
 package com.acifuina.robojoystick;
 
+import android.app.Activity;
+import android.app.ProgressDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.view.KeyEvent;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.RelativeLayout;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.BaseAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
-import io.github.controlwear.virtual.joystick.android.JoystickView;
+public class FindDevicesActivity extends AppCompatActivity implements BLEConnectionManager.BleManagerCallback{
+    private ProgressDialog progressDialog;
+    private ListView listView;
 
-public class FindDevicesActivity extends AppCompatActivity {
+    private final static int REQUEST_ENABLE_BT = 1;
+    private BroadcastReceiver broadcastReceiver;
 
-    private TextView mTextViewAngleLeft;
-    private TextView mTextViewStrengthLeft;
-    private RelativeLayout backgroundView;
-    private TextView mTextViewAngleRight;
-    private TextView mTextViewStrengthRight;
-    private List blockedKeys = new ArrayList(Arrays.asList(KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.KEYCODE_VOLUME_UP));
+    private ArrayList<BluetoothDevice> dispositivosBluetooth;
+    private DispositivosBTAdapter dispositivosBTAdapter;
 
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        if (blockedKeys.contains(event.getKeyCode())) {
-            if (event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP) {
-                backgroundView.setBackgroundColor(getResources().getColor(R.color.arduino_orange));
-            }
-            if (event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_DOWN) {
-                backgroundView.setBackgroundColor(getResources().getColor(R.color.white_color));
-            }
-            return true;
-        } else {
-            return super.dispatchKeyEvent(event);
-        }
-    }
+    private BLEConnectionManager bleConnectionManager = BLEConnectionManager.getInstance();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,31 +43,122 @@ public class FindDevicesActivity extends AppCompatActivity {
         setContentView(R.layout.activity_find_devices);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        toolbar.setNavigationIcon(R.mipmap.ic_launcher);
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
 
-        mTextViewAngleLeft = (TextView) findViewById(R.id.textView_angle_left);
-        mTextViewStrengthLeft = (TextView) findViewById(R.id.textView_strength_left);
-        backgroundView = (RelativeLayout) findViewById(R.id.backgroundView);
-
-        JoystickView joystickLeft = (JoystickView) findViewById(R.id.joystickView_left);
-        joystickLeft.setOnMoveListener(new JoystickView.OnMoveListener() {
+//        iniciar();
+        fab.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onMove(int angle, int strength) {
-                mTextViewAngleLeft.setText(angle + "°");
-                mTextViewStrengthLeft.setText(strength + "%");
+            public void onClick(View view) {
+                scanDevices();
             }
         });
 
-        mTextViewAngleRight = (TextView) findViewById(R.id.textView_angle_right);
-        mTextViewStrengthRight = (TextView) findViewById(R.id.textView_strength_right);
-
-        JoystickView joystickRight = (JoystickView) findViewById(R.id.joystickView_right);
-        joystickRight.setOnMoveListener(new JoystickView.OnMoveListener() {
+        progressDialog = new ProgressDialog(FindDevicesActivity.this);
+        progressDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
             @Override
-            public void onMove(int angle, int strength) {
-                mTextViewAngleRight.setText(angle + "°");
-                mTextViewStrengthRight.setText(strength + "%");
+            public void onDismiss(DialogInterface dialogInterface) {
+                bleConnectionManager.bluetoothAdapter().cancelDiscovery();
             }
         });
+
+        bleConnectionManager.bleManagerCallback = this;
+
+        dispositivosBluetooth = new ArrayList<BluetoothDevice>();
+        listView = (ListView)findViewById(R.id.listView);
+        dispositivosBTAdapter = new DispositivosBTAdapter();
+        listView.setAdapter(dispositivosBTAdapter);
+
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                progressDialog.setTitle("Conectando con el dispositivo " + dispositivosBluetooth.get(i).getName());
+                progressDialog.setMessage("Por favor espere...");
+                progressDialog.show();
+                bleConnectionManager.connectTo(dispositivosBluetooth.get(i));
+            }
+        });
+
+        broadcastReceiver = new BroadcastReceiver() {
+            public void onReceive(Context context, Intent intent) {
+                String action = intent.getAction();
+                if (BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)) {
+                    progressDialog.setTitle("Buscando dispositivos Bluetooth");
+                    progressDialog.setMessage("Por favor espere...");
+                    progressDialog.show();
+                    dispositivosBluetooth.clear();
+                    dispositivosBTAdapter.notifyDataSetChanged();
+                }
+                if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+                    progressDialog.dismiss();
+                }
+                if (BluetoothDevice.ACTION_FOUND.equals(action)) {
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    dispositivosBluetooth.add(device);
+                    dispositivosBTAdapter.notifyDataSetChanged();
+                }
+            }
+        };
+
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(BluetoothDevice.ACTION_FOUND);
+        intentFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+        intentFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        registerReceiver(broadcastReceiver, intentFilter);
+        scanDevices();
+    }
+    private void scanDevices() {
+        if (!bleConnectionManager.bluetoothAdapter().isEnabled()) {
+            Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+        } else {
+            bleConnectionManager.bluetoothAdapter().startDiscovery();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == Activity.RESULT_OK && requestCode == REQUEST_ENABLE_BT) {
+            bleConnectionManager.bluetoothAdapter().startDiscovery();
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        if (bleConnectionManager.bluetoothAdapter().isDiscovering()) {
+            unregisterReceiver(broadcastReceiver);
+            bleConnectionManager.bluetoothAdapter().cancelDiscovery();
+        }
+    }
+
+    private class DispositivosBTAdapter extends BaseAdapter {
+        @Override
+        public int getCount() {
+            return dispositivosBluetooth.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return dispositivosBluetooth.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            BluetoothDevice currentDevice = dispositivosBluetooth.get(position);
+            convertView = getLayoutInflater().inflate(R.layout.bt_device_cell, null);
+            TextView nombreDispositivoTextView = (TextView) convertView.findViewById(R.id.nombreDispositivoTextView);
+            TextView direccionDispositivoTextView = (TextView) convertView.findViewById(R.id.direccionTextView);
+            nombreDispositivoTextView.setText(currentDevice.getName());
+            direccionDispositivoTextView.setText(currentDevice.getAddress());
+            return convertView;
+        }
     }
 
     @Override
@@ -88,7 +173,36 @@ public class FindDevicesActivity extends AppCompatActivity {
         if (id == R.id.action_settings) {
             return true;
         }
+        if (id == R.id.action_credits) {
+            Intent intent = new Intent(this, CreditosActivity.class);
+            startActivity(intent);
+            return true;
+        }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBLEDeviceConnected() {
+        System.out.println("onBLEDeviceConnected ActivityFindDevices");
+        FindDevicesActivity.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                unregisterReceiver(broadcastReceiver);
+                progressDialog.dismiss();
+                iniciar();
+            }
+        });
+    }
+
+    @Override
+    public void onBLEDeviceDisconnected() {
+        System.out.println("onBLEDeviceDisconnected");
+    }
+
+    private void iniciar() {
+        Intent goToNueva = new Intent(this, JoysticksActivity.class);
+        startActivity(goToNueva);
+        finish();
     }
 
 }
