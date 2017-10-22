@@ -67,6 +67,10 @@
         custom:JV_backgroundColor="@color/colorPrimary"
         custom:JV_borderColor="@color/colorPrimaryDark"
         custom:JV_buttonColor="@color/arduino_orange"/>
-
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:id="@+id/armaButton"/>
 
 </RelativeLayout>

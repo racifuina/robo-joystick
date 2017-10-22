@@ -41,20 +41,35 @@ public class BLEConnectionManager extends BluetoothGattCallback {
     }
 
     void connectTo (BluetoothDevice device) {
+        System.out.println("before cancelDiscovery");
         mBluetoothAdapter.cancelDiscovery();
+        System.out.println("after cancelDiscovery");
+
         try {
+            System.out.println("socketConnection");
             BluetoothSocket socketConnection = device.createRfcommSocketToServiceRecord(myUUID);
+            System.out.println("connect");
             socketConnection.connect();
+            System.out.println("device");
             mBluetoothDevice = device;
             isConnected = true;
             bluetoothSocket = socketConnection;
-            System.out.println("is eRfcommS");
             if (bleManagerCallback != null) bleManagerCallback.onBLEDeviceConnected();
         } catch (IOException e) {
             isConnected = false;
-            disconnectModule();
-            System.out.println("is BLE");
-            device.connectGatt(RoboJoystick.getInstance(), true, this);
+//            disconnectModule();
+//            device.connectGatt(RoboJoystick.getInstance(), true, this);
+            e.printStackTrace();
+        }
+    }
+
+
+    public void reconnect(){
+        try {
+            System.out.println("reconnecting");
+            bluetoothSocket.connect();
+        } catch (IOException e) {
+            System.out.println("exception");
             e.printStackTrace();
         }
     }

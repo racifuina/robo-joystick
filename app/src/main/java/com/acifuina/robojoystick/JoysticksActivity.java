@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -16,6 +17,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
@@ -36,6 +38,8 @@ public class JoysticksActivity extends AppCompatActivity {
     private JoystickPositions leftJoystickPosition = JoystickPositions.center;
     private JoystickPositions rightJoystickPosition = JoystickPositions.center;
     private Menu menu;
+    private Button armaButton;
+    private Boolean armaEncendida = false;
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
@@ -51,22 +55,31 @@ public class JoysticksActivity extends AppCompatActivity {
             return super.dispatchKeyEvent(event);
         }
     }
-    //The BroadcastReceiver that listens for bluetooth broadcasts
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
             if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
-                menu.getItem(0).setIcon(getDrawable(R.drawable.ic_bluetooth_connected_white_24dp));
+                BLEConnectionManager.getInstance().isConnected = true;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    menu.getItem(0).setIcon(getDrawable(R.drawable.ic_bluetooth_connected_white_24dp));
+                }
             }
 
             if (BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED.equals(action)) {
-                menu.getItem(0).setIcon(getDrawable(R.drawable.ic_bluetooth_disabled_white_24dp));
+                BLEConnectionManager.getInstance().isConnected = false;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    menu.getItem(0).setIcon(getDrawable(R.drawable.ic_bluetooth_disabled_white_24dp));
+                }
             }
 
             if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action)) {
-                menu.getItem(0).setIcon(getDrawable(R.drawable.ic_bluetooth_disabled_white_24dp));
+                BLEConnectionManager.getInstance().isConnected = false;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    menu.getItem(0).setIcon(getDrawable(R.drawable.ic_bluetooth_disabled_white_24dp));
+                }
+
             }
         }
     };
@@ -80,6 +93,7 @@ public class JoysticksActivity extends AppCompatActivity {
         mTextViewAngleLeft = (TextView) findViewById(R.id.textView_angle_left);
         mTextViewStrengthLeft = (TextView) findViewById(R.id.textView_strength_left);
         backgroundView = (RelativeLayout) findViewById(R.id.backgroundView);
+        armaButton = (Button) findViewById(R.id.armaButton);
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
@@ -93,6 +107,7 @@ public class JoysticksActivity extends AppCompatActivity {
             public void onMove(int angle, int strength) {
                 mTextViewAngleLeft.setText(angle + "°");
                 mTextViewStrengthLeft.setText(strength + "%");
+
                 if (strength > 10) {
                     if (angle < 180) {
                         leftJoystickPosition = JoystickPositions.forward;
@@ -104,7 +119,7 @@ public class JoysticksActivity extends AppCompatActivity {
                 }
                 updateMovement();
             }
-        }, 500);
+        });
 
         mTextViewAngleRight = (TextView) findViewById(R.id.textView_angle_right);
         mTextViewStrengthRight = (TextView) findViewById(R.id.textView_strength_right);
@@ -127,6 +142,19 @@ public class JoysticksActivity extends AppCompatActivity {
                 updateMovement();
             }
         });
+
+        armaButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (armaEncendida) {
+                    BLEConnectionManager.getInstance().enviarComando("f");
+                } else {
+                    BLEConnectionManager.getInstance().enviarComando("g");
+                }
+                armaEncendida = !armaEncendida;
+
+            }
+        });
     }
 
     @Override
@@ -134,9 +162,13 @@ public class JoysticksActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.joysticks_menu, menu);
         this.menu = menu;
         if (BLEConnectionManager.getInstance().isConnected ) {
-            menu.getItem(0).setIcon(getDrawable(R.drawable.ic_bluetooth_connected_white_24dp));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                menu.getItem(0).setIcon(getDrawable(R.drawable.ic_bluetooth_connected_white_24dp));
+            }
         } else {
-            menu.getItem(0).setIcon(getDrawable(R.drawable.ic_bluetooth_disabled_white_24dp));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                menu.getItem(0).setIcon(getDrawable(R.drawable.ic_bluetooth_disabled_white_24dp));
+            }
         }
         return true;
     }
@@ -151,7 +183,11 @@ public class JoysticksActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_settings) {
+        if (id == R.id.bluetooth_status) {
+            if (!BLEConnectionManager.isConnected) {
+                System.out.println("About to reconnect");
+                BLEConnectionManager.getInstance().reconnect();
+            }
             return true;
         }
         if (id == R.id.action_credits) {
@@ -169,7 +205,7 @@ public class JoysticksActivity extends AppCompatActivity {
         }
         //ATRAS
         if (leftJoystickPosition == JoystickPositions.backwards && rightJoystickPosition == JoystickPositions.backwards) {
-            BLEConnectionManager.getInstance().enviarComando("e");
+            BLEConnectionManager.getInstance().enviarComando("b");
         }
         //CENTRO
         if (leftJoystickPosition == JoystickPositions.center && rightJoystickPosition == JoystickPositions.center) {
@@ -181,7 +217,7 @@ public class JoysticksActivity extends AppCompatActivity {
         }
         //IZQUIERDA
         if (leftJoystickPosition == JoystickPositions.backwards && rightJoystickPosition == JoystickPositions.forward) {
-            BLEConnectionManager.getInstance().enviarComando("b");
+            BLEConnectionManager.getInstance().enviarComando("e");
         }
 
     }
